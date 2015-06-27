@@ -12,3 +12,28 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+
+# ./configure
+/Makefile
+/build-aux
+/config.h
+/config.log
+/config.status
+/libtool
+/src/Makefile
+/src/pghx/.deps
+/src/pghx/Makefile
+/tests/.deps
+/tests/Makefile
+
+# make
+/src/pghx/.libs
+*.lo
+*.o
+*.la
+
+# make check
+/tests/.libs
+/tests/check_pghx
+/tests/*.log
+/tests/*.trs
