@@ -31,6 +31,7 @@ Makefile.in
 *.lo
 *.o
 *.la
+*.in
 
 # make check
 /tests/.libs
