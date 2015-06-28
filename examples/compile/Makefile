@@ -1,8 +1,8 @@
 LIBS = -lpghx -lpq
 CPPFLAGS = -I/usr/include/postgresql
 CC = gcc
-SOURCE = pghx_compile.c
-PROG = pghx_compile
+SOURCE = compile_pghx.c
+PROG = compile_pghx
 
 all:
 	$(CC) $(CPPFLAGS) $(LIBS) $(SOURCE) -o $(PROG)

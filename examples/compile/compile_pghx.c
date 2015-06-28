@@ -1,7 +1,7 @@
 /* Just a simple executable to check install and give an example of
  * Makefile
  */
-#include <logicaldecoding.h>
+#include <pghx/logicaldecoding.h>
 #include <stdlib.h>
 
 int
