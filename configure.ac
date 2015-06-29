@@ -1,4 +1,4 @@
-AC_INIT([pghx], [0.1-alpha-2dev], [lisael@lisael.org])
+AC_INIT([pghx], [0.1-alpha-2], [lisael@lisael.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])

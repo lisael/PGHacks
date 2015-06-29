@@ -22,7 +22,6 @@ END_TEST
 START_TEST(error_h)
 {
     pghx_error_info[0] = "new_error";
-
 }
 END_TEST
 
