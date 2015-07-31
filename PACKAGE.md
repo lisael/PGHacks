@@ -1,4 +1,7 @@
-On a freshly installed debian GNU/Linux Jessie:
+Debian GNU/Linux
+================
+
+On a freshly installed Debian GNU/Linux Jessie:
 
 ```
 apt-get update
@@ -10,13 +13,6 @@ autoreconf --install
 make
 make check
 make distcheck
-cd ..
-mv PGHacks/pghx-0.1.tar.gz .
-tar -xvzf pghx-0.1.tar.gz 
-cd pghx-0.1
-./configure
-make 
-make check
-make install
 ```
 
+You should get an installable tarball (see `INSTALL.md`)
