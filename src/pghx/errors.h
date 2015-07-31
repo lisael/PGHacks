@@ -20,6 +20,9 @@ typedef enum pghx_error_type{
     PGHX_LD_BAD_PLUGIN,
     PGHX_LD_STATUS_ERROR,
 
+    // testdecoding parser
+    PGHX_LD_PARSE_ERROR,
+
     // you'll need this to create a mapping with your errors/ecxeptions
     // (I love that trick, though I can't remember where I read that first)
     PGHX_ERRORS_NUM,
