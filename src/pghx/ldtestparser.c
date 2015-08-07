@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "ldtestparser.h"
 #include "errors.h"
 
@@ -49,7 +50,7 @@ int find_char(char *str, char needle)
         c = str[i];
     }
     // reached the end of string
-    return -1;
+    return 0 - i;
 }
 
 
@@ -71,9 +72,12 @@ char *parser_get_word(pghx_ld_test_parser *p)
 {
     int length;
     length = find_char(p->input + p->start, ' ');
-    p->pos += length;
-    if(length == -1)
-        return p->input + p->start;
+    if(length < 0)
+    {
+        p->pos -= length;
+    }
+    else
+        p->pos += length;
     return parser_emit(p);
 }
 
@@ -90,12 +94,12 @@ int parser_parse_table(pghx_ld_test_parser *p)
     int length;
 
     length = find_char(p->input + p->start, '.');
-    if (length == -1)
+    if (length <= -1)
         goto error;
     p->pos += length;
     p->schema = parser_emit(p);
     length = find_char(p->input + p->start, ':');
-    if (length == -1)
+    if (length <= -1)
         goto error;
     p->pos += length;
     p->table = parser_emit(p);
@@ -113,7 +117,7 @@ char *parser_parse_field_name(pghx_ld_test_parser *p)
     int length;
 
     length = find_char(p->input + p->start, '[');
-    if (length == -1)
+    if (length <= -1)
     {
         Pghx_format_error(PGHX_LD_PARSE_ERROR,
                 "Can't parse field name at char %i in line `%s`\n",
@@ -130,7 +134,7 @@ char *parser_parse_field_type(pghx_ld_test_parser *p)
     int length;
 
     length = find_char(p->input + p->start, ']');
-    if (length == -1)
+    if (length <= -1)
     {
         Pghx_format_error(PGHX_LD_PARSE_ERROR,
                 "Can't parse field type at char %i in line `%s`\n",
@@ -148,7 +152,7 @@ char *parser_parse_text_value(pghx_ld_test_parser *p)
 
     p->pos++;
     length = find_char(p->input + p->pos, '\'');
-    if (length == -1)
+    if (length <= -1)
         goto error;
     if (length == 1)
         goto emit;
@@ -159,6 +163,8 @@ char *parser_parse_text_value(pghx_ld_test_parser *p)
         {
             p->pos += 2 ;
             length = find_char(p->input + p->pos, '\'');
+            if (length <= -1)
+                goto error;
             p->pos += length;
             continue;
         }
@@ -187,10 +193,13 @@ char *parser_parse_field_value(pghx_ld_test_parser *p)
         return parser_parse_text_value(p);
 
     length = find_char(p->input + p->start, ' ');
-    if (length == -1)
+    if (length <= -1)
     {
         if(p->input[p->start] != '\0')
-            return p->input + p->start;
+        {
+            p->pos -= length;
+            return parser_emit(p);
+        }
         Pghx_format_error(PGHX_LD_PARSE_ERROR,
             "Can't parse field value at char %i in line `%s`\n",
             p->start,
@@ -236,32 +245,75 @@ int parser_parse_action(pghx_ld_test_parser *p)
     return 0;
 }
 
+int pghx_ld_test_event_extend(pghx_ld_test_event *ev)
+{
+    char **new_keys;
+    char **new_types;
+    char **new_values;
 
-int pghx_ld_test_parser_parse(
+    if (ev->size == 0)
+        ev->size = 10;
+
+    ev->size = ev->size + ev->size/2;
+
+    new_keys = realloc(ev->keys, ev->size+1);
+    new_types = realloc(ev->types, ev->size+1);
+    new_values = realloc(ev->values, ev->size+1);
+    ev->keys = new_keys;
+    ev->types = new_types;
+    ev->values = new_values;
+
+    return 1;
+}
+
+pghx_ld_test_event *pghx_ld_test_event_new()
+{
+    pghx_ld_test_event *new;
+
+    new = malloc(sizeof(pghx_ld_test_event));
+    if(!new){
+        Pghx_set_error(PGHX_OUT_OF_MEMORY, "Could not create test_event\n");
+        return NULL;
+    }
+    new->size = 0;
+    new->keys = new->types = new->values = NULL;
+    if (!pghx_ld_test_event_extend(new))
+    {
+        return NULL;
+    }
+    return new;
+}
+
+pghx_ld_test_event *pghx_ld_test_parser_parse(
         pghx_ld_test_parser *p,
-        char *input,
-        char *keys[],
-        char *types[],
-        char *values[])
+        char *input)
 {
     int length;
+    pghx_ld_test_event *result;
+
+    result = pghx_ld_test_event_new();
+    if(!result)
+    {
+        return NULL;
+    }
 
     pghx_ld_test_parser_reinit(p);
-    p->input = input;
+    p->input = result->raw = input;
     length = startswith(p->input, "BEGIN ");
     if(length != -1)
     {
-        p->verb = PGHX_LD_TP_VERB_BEGIN;
+        p->verb = result->verb = PGHX_LD_TP_VERB_BEGIN;
         p->start = p->pos = length;
-        return parser_parse_txid(p);
+        goto tx_return;
     }
     length = startswith(p->input, "COMMIT ");
     if(length != -1)
     {
-        p->verb = PGHX_LD_TP_VERB_COMMIT;
+        p->verb = result->verb = PGHX_LD_TP_VERB_COMMIT;
         p->start = p->pos = length;
-        return parser_parse_txid(p);
+        goto tx_return;
     }
+    result->txid = p->txid;
     length = startswith(p->input, "table ");
     if(length != -1)
     {
@@ -269,33 +321,40 @@ int pghx_ld_test_parser_parse(
         char *txt;
         p->start = p->pos = length;
         if (!parser_parse_table(p))
-            return 0;
+            return NULL;
         p->start++;
         p->pos++;
         if (!parser_parse_action(p))
-            return 0;
-        while(p->pos)
+            return NULL;
+        result->verb = p->verb;
+        result->table = p->table;
+        result->schema = p->schema;
+        while(p->input[p->pos])
         {
+            if (i >= result->size)
+            {
+                pghx_ld_test_event_extend(result);
+            }
             txt = parser_parse_field_name(p);
             if(!txt)
-                return 0;
-            keys[i] = txt;
+                return NULL;
+            result->keys[i] = txt;
             txt = parser_parse_field_type(p);
             if(!txt)
-                return 0;
-            types[i] = txt;
+                return NULL;
+            result->types[i] = txt;
             p->pos++;
             p->start++;
             txt = parser_parse_field_value(p);
             if(!txt)
-                return 0;
-            values[i] = txt;
+                return NULL;
+            result->values[i] = txt;
             i++;
         }
-        keys[i] = NULL;
-        types[i] = NULL;
-        values[i] = NULL;
-        return 1;
+        result->keys[i] = NULL;
+        result->types[i] = NULL;
+        result->values[i] = NULL;
+        return result;
     }
     else
     {
@@ -303,7 +362,12 @@ int pghx_ld_test_parser_parse(
                 "Expected 'table' at char %i in line `%s`\n",
                 p->start,
                 p->input);
-        return 0;
+        return NULL;
     }
+tx_return:
+    if (!parser_parse_txid(p))
+        return 0;
+    result->txid = p->txid;
+    return result;
 }
 
