@@ -3,6 +3,7 @@
 #include <string.h>
 #include "ldtestparser.h"
 #include "errors.h"
+#include "utils.h"
 
 int pghx_ld_test_parser_init(pghx_ld_test_parser *p){
     p->txid = 0;
@@ -251,19 +252,25 @@ int pghx_ld_test_event_extend(pghx_ld_test_event *ev)
     char **new_types;
     char **new_values;
 
-    if (ev->size == 0)
-        ev->size = 10;
+    ev->size += 10;
 
-    ev->size = ev->size + ev->size/2;
-
-    new_keys = realloc(ev->keys, ev->size+1);
-    new_types = realloc(ev->types, ev->size+1);
-    new_values = realloc(ev->values, ev->size+1);
+    new_keys = realloc(ev->keys, sizeof(char *) * ev->size+2);
+    if(new_keys == NULL)
+        goto error;
+    new_types = realloc(ev->types, sizeof(char *) * ev->size+2);
+    if(new_types == NULL)
+        goto error;
+    new_values = realloc(ev->values, sizeof(char *) * ev->size+2);
+    if(new_values == NULL)
+        goto error;
     ev->keys = new_keys;
     ev->types = new_types;
     ev->values = new_values;
 
     return 1;
+error:
+    Pghx_set_error(PGHX_OUT_OF_MEMORY, "Could not extend field arrays\n");
+    return 0;
 }
 
 pghx_ld_test_event *pghx_ld_test_event_new()
@@ -318,6 +325,7 @@ pghx_ld_test_event *pghx_ld_test_parser_parse(
     if(length != -1)
     {
         int i = 0;
+        char expect_new = 0;
         char *txt;
         p->start = p->pos = length;
         if (!parser_parse_table(p))
@@ -331,29 +339,71 @@ pghx_ld_test_event *pghx_ld_test_parser_parse(
         result->schema = p->schema;
         while(p->input[p->pos])
         {
+            // extend field arrays if needed
             if (i >= result->size)
             {
-                pghx_ld_test_event_extend(result);
+                if (!pghx_ld_test_event_extend(result))
+                    return NULL;
             }
+
+            // extract field name
             txt = parser_parse_field_name(p);
             if(!txt)
                 return NULL;
+            // UPDATE lines may be more complex in case of REPLICA IDENTITY FULL
+            if (result->verb == PGHX_LD_TP_VERB_UPDATE)
+            {
+                length = startswith(txt, "old-key: ");
+                if (length != -1)
+                {
+                    // strip "old-key: " from the fieldname
+                    txt = txt + length;
+                    expect_new = 1;
+                    goto done;
+                }
+                if (expect_new)
+                {
+                    length = startswith(txt, "new_tuple: ");
+                    if (length != -1)
+                    {
+                        txt = txt + length;
+                        // no need to check anymore
+                        expect_new = 0;
+                        // add a NULL separator in the arrays
+                        result->keys[i] = result->types[i] = result->values[i] = NULL;
+                        i++;
+                        if (i >= result->size)
+                        {
+                            if (!pghx_ld_test_event_extend(result))
+                                return NULL;
+                        }
+                    }
+                }
+                done:
+                    ;;
+            }
             result->keys[i] = txt;
+
+            // well... parse field type
             txt = parser_parse_field_type(p);
             if(!txt)
                 return NULL;
             result->types[i] = txt;
             p->pos++;
             p->start++;
+
+            // useless comment
+            // parse field value
             txt = parser_parse_field_value(p);
             if(!txt)
                 return NULL;
             result->values[i] = txt;
             i++;
         }
-        result->keys[i] = NULL;
-        result->types[i] = NULL;
-        result->values[i] = NULL;
+        result->keys[i] = result->types[i] = result->values[i] = NULL;
+        i++;
+        result->keys[i] = result->types[i] = result->values[i] = NULL;
+        /*puts(result->keys[0]);fflush(stdout);*/
         return result;
     }
     else

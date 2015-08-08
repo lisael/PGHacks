@@ -23,7 +23,8 @@ END_TEST
 // TODO: more tests...
 START_TEST(error_h)
 {
-    pghx_error_info[0] = "new_error";
+    //pghx_error_info[0] = "new_error";
+    ;;
 }
 END_TEST
 
@@ -35,9 +36,6 @@ START_TEST(test_ld_test_parser)
     pghx_ld_test_parser *pp = &p;
     pghx_ld_test_event *e;
     char *input;
-    char *keys[FIELDS_NR];
-    char *types[FIELDS_NR];
-    char *values[FIELDS_NR];
 
     int i;
 
@@ -85,7 +83,7 @@ START_TEST(test_ld_test_parser)
     free(input);
 
     input = strdup(
-            "table public2.data2: INSERT: key_0[type_0]:'value ''0''' key_1[type_1]:value_1");
+            "table public2.data2: INSERT: key_0[type_0]:'value 0' key_1[type_1]:value_1");
     e = pghx_ld_test_parser_parse(pp, input);
     if (e == NULL)
         ck_abort_msg(pghx_error_info);
@@ -99,7 +97,7 @@ START_TEST(test_ld_test_parser)
          {
             ck_assert_str_eq(e->keys[i], "key_0");
             ck_assert_str_eq(e->types[i], "type_0");
-            ck_assert_str_eq(e->values[i], "'value ''0'''");
+            ck_assert_str_eq(e->values[i], "'value 0'");
             continue;
          }
          if (i == 1)
@@ -113,13 +111,12 @@ START_TEST(test_ld_test_parser)
          if (e->keys[i] == NULL && e->types[i] == NULL && e->values[i] == NULL)
              break;
          // we should never reach this line
-         ck_assert_int_eq(1,0);
+         ck_abort_msg("hop");
     }
     free(input);
-    ck_abort_msg("ciiocou");
 
     input = strdup(
-            "table public.data: UPDATE: key_0[type_0]:value_0 key_1[type_1]:'value ''1'''");
+            "table public.data: UPDATE: key_0[type_0]:value_0 key_1[type_1]:'value 1'");
     e = pghx_ld_test_parser_parse(pp, input);
     if (e == NULL)
         ck_abort_msg(pghx_error_info);
@@ -132,7 +129,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->types[0], "type_0");
     ck_assert_str_eq(e->types[1], "type_1");
     ck_assert_str_eq(e->values[0], "value_0");
-    ck_assert_str_eq(e->values[1], "'value ''1'''");
+    ck_assert_str_eq(e->values[1], "'value 1'");
     free(input);
 
     input = strdup(
@@ -148,6 +145,22 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->types[0], "integer");
     ck_assert_str_eq(e->values[0], "42");
     free(input);
+
+    input = strdup(
+            /*"table public.data: UPDATE: i[i]:0 d[t]:1 ii[i]:2 ii[i]:3 iii[i]:4 iiii[i]:5");*/
+            "table public.data: UPDATE: old-key: id[integer]:2 data[text]:'1' new-tuple: id[integer]:4 data[text]:'2'");
+    e = pghx_ld_test_parser_parse(pp, input);
+    if (e == NULL)
+        ck_abort_msg(pghx_error_info);
+    ck_assert_int_eq(e->txid, 2);
+    ck_assert_str_eq(e->schema, "public");
+    ck_assert_str_eq(e->table, "data");
+    ck_assert_int_eq(e->verb, PGHX_LD_TP_VERB_UPDATE);
+    ck_assert_str_eq(e->keys[0], "id");
+    ck_assert_str_eq(e->types[0], "integer");
+    ck_assert_str_eq(e->values[0], "2");
+    free(input);
+
 }
 END_TEST
 
