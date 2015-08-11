@@ -39,4 +39,5 @@ int pghx_ld_test_parser_init(pghx_ld_test_parser *p);
 pghx_ld_test_event *pghx_ld_test_parser_parse(
         pghx_ld_test_parser *p,
         char *input);
+void pghx_ld_test_event_free(pghx_ld_test_event *e);
 #endif

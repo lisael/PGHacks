@@ -185,7 +185,6 @@ error:
     return NULL;
 }
 
-
 char *parser_parse_field_value(pghx_ld_test_parser *p)
 {
     int length;
@@ -306,6 +305,8 @@ pghx_ld_test_event *pghx_ld_test_parser_parse(
 
     pghx_ld_test_parser_reinit(p);
     p->input = result->raw = input;
+
+    // check the type of event (transaction or changes)
     length = startswith(p->input, "BEGIN ");
     if(length != -1)
     {
@@ -320,23 +321,36 @@ pghx_ld_test_event *pghx_ld_test_parser_parse(
         p->start = p->pos = length;
         goto tx_return;
     }
+
+    // it's not a transaction action. Get the txid from the parser itself
     result->txid = p->txid;
+
+    // .. so, this must be data change
     length = startswith(p->input, "table ");
     if(length != -1)
     {
         int i = 0;
         char expect_new = 0;
         char *txt;
+
+        // consume "table "
         p->start = p->pos = length;
+
+        // read table schema and name
         if (!parser_parse_table(p))
             return NULL;
+
         p->start++;
         p->pos++;
+
+        // read the action
         if (!parser_parse_action(p))
             return NULL;
         result->verb = p->verb;
         result->table = p->table;
         result->schema = p->schema;
+
+        // parse the fields
         while(p->input[p->pos])
         {
             // extend field arrays if needed
@@ -400,10 +414,11 @@ pghx_ld_test_event *pghx_ld_test_parser_parse(
             result->values[i] = txt;
             i++;
         }
+
+        // add two null values (one NULL => old/new separator)
         result->keys[i] = result->types[i] = result->values[i] = NULL;
         i++;
         result->keys[i] = result->types[i] = result->values[i] = NULL;
-        /*puts(result->keys[0]);fflush(stdout);*/
         return result;
     }
     else
@@ -421,3 +436,10 @@ tx_return:
     return result;
 }
 
+void pghx_ld_test_event_free(pghx_ld_test_event *e)
+{
+     free(e->keys);
+     free(e->types);
+     free(e->values);
+     free(e);
+}

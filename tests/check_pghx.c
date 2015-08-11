@@ -48,6 +48,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_int_eq(e->verb, PGHX_LD_TP_VERB_BEGIN);
     ck_assert_int_eq(e->txid, 1);
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup(
             "table public.data: INSERT: key_0[type_0]:value_0 key_1[type_1]:'value ''1'''");
@@ -65,6 +66,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->values[0], "value_0");
     ck_assert_str_eq(e->values[1], "'value ''1'''");
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup("COMMIT 1");
     e = pghx_ld_test_parser_parse(pp, input);
@@ -73,6 +75,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_int_eq(e->verb, PGHX_LD_TP_VERB_COMMIT);
     ck_assert_int_eq(e->txid, 1);
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup("BEGIN 2");
     e = pghx_ld_test_parser_parse(pp, input);
@@ -81,6 +84,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_int_eq(pp->verb, PGHX_LD_TP_VERB_BEGIN);
     ck_assert_int_eq(pp->txid, 2);
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup(
             "table public2.data2: INSERT: key_0[type_0]:'value 0' key_1[type_1]:value_1");
@@ -114,6 +118,7 @@ START_TEST(test_ld_test_parser)
          ck_abort_msg("hop");
     }
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup(
             "table public.data: UPDATE: key_0[type_0]:value_0 key_1[type_1]:'value 1'");
@@ -131,6 +136,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->values[0], "value_0");
     ck_assert_str_eq(e->values[1], "'value 1'");
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup(
             "table public.data: DELETE: id[integer]:42");
@@ -145,9 +151,9 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->types[0], "integer");
     ck_assert_str_eq(e->values[0], "42");
     free(input);
+    pghx_ld_test_event_free(e);
 
     input = strdup(
-            /*"table public.data: UPDATE: i[i]:0 d[t]:1 ii[i]:2 ii[i]:3 iii[i]:4 iiii[i]:5");*/
             "table public.data: UPDATE: old-key: id[integer]:2 data[text]:'1' new-tuple: id[integer]:4 data[text]:'2'");
     e = pghx_ld_test_parser_parse(pp, input);
     if (e == NULL)
@@ -160,6 +166,7 @@ START_TEST(test_ld_test_parser)
     ck_assert_str_eq(e->types[0], "integer");
     ck_assert_str_eq(e->values[0], "2");
     free(input);
+    pghx_ld_test_event_free(e);
 
 }
 END_TEST
