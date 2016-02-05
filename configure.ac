@@ -1,7 +1,7 @@
 AC_INIT([pghx], [0.1-alpha-3], [lisael@lisael.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror subdir-objects])
 AM_PROG_AR
 AM_PATH_CHECK
 LT_INIT

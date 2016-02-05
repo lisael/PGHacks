@@ -33,7 +33,8 @@ extern char pghx_error_info[1024];
 
 #define Pghx_set_error(tp, info) do{\
     pghx_error = (tp);\
-    strcpy(pghx_error_info, info);\
+    strncpy(pghx_error_info, info, 1024);\
+    pghx_error_info[1024] = '\0';\
 }while(0)
 
 #define Pghx_format_error(tp, info,...) do{\
