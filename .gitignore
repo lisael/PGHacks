@@ -1,3 +1,6 @@
+# examples
+/examples/compile/compile_pghx
+
 # http://www.gnu.org/software/automake
 
 Makefile.in
@@ -14,27 +17,26 @@ Makefile.in
 /stamp-h1
 
 # ./configure
-/Makefile
+**/Makefile
 /build-aux
 /config.h
 /config.log
 /config.status
 /libtool
-/src/Makefile
-/src/pghx/.deps
-/src/pghx/Makefile
-/tests/.deps
-/tests/Makefile
 
 # make
-/src/pghx/.libs
+**/.libs
+**/.deps
+**/.dirstamp
 *.lo
 *.o
 *.la
 *.in
 
 # make check
-/tests/.libs
 /tests/check_pghx
 /tests/*.log
 /tests/*.trs
+
+# builds
+pghx-0*
