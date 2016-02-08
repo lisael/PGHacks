@@ -4,14 +4,9 @@
 #include <sys/time.h>
 #include <string.h>
 
-/* for ntohl/htonl */
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #include <pg_config_manual.h>
-#include <internal/pqexpbuffer.h>
+#include <internal/libpq-int.h>
 
-#define INT64CONST(x)  ((int64_t) x##LL)
 #define POSTGRES_EPOCH_JDATE    2451545
 #define UNIX_EPOCH_JDATE        2440588
 #define SECS_PER_DAY    86400
