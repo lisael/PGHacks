@@ -7,6 +7,7 @@
 
 int pghx_ld_test_parser_init(pghx_ld_test_parser *p){
     p->txid = 0;
+    return 1;
 }
 
 int pghx_ld_test_parser_reinit(pghx_ld_test_parser *p){
@@ -16,6 +17,7 @@ int pghx_ld_test_parser_reinit(pghx_ld_test_parser *p){
     p->pos = 0;
     p->schema = NULL;
     p->table = NULL;
+    return 1;
 }
 
 
